@@ -2,7 +2,16 @@ package Amazon.practise;
 
 import java.util.Scanner;
 
-// Student Class
+//Exceptions
+class StudentFeeException extends Exception {
+    public StudentFeeException(String message) { super(message); }
+}
+
+class InvalidAmountException extends StudentFeeException {
+    public InvalidAmountException(String message) { super(message); }
+}
+
+// Encapsulated Student Class
 class Student {
     private String studentID;
     private String name;
@@ -13,57 +22,56 @@ class Student {
         this.studentID = studentID;
         this.name = name;
     }
-    
-//fees set
-    
-    public void setTotalFee(double amount) {
-        if (amount > 0) {
-            this.totalFee = amount;
-            System.out.println("Total fee set to: " + totalFee);
-        } else {
-            System.out.println("Error: Fee amount must be positive.");
+
+    // Getters (Read-only access)
+    public String getStudentID() { return studentID; }
+    public String getName() { return name; }
+    public double getTotalFee() { return totalFee; }
+    public double getPaidAmount() { return paidAmount; }
+
+    // Logic with Exception Handling instead of just if-else
+    public void setTotalFee(double amount) throws InvalidAmountException {
+        if (amount <= 0) {
+            throw new InvalidAmountException("Fee amount must be positive. Provided: " + amount);
         }
+        this.totalFee = amount;
+        System.out.println("Total fee set successfully.");
     }
 
-    public void payFee(double amount) {
+    public void payFee(double amount) throws StudentFeeException {
         if (totalFee == -1) {
-            System.out.println("Warning: Please set the total fee first!");
-            return;
+            throw new StudentFeeException("Total fee has not been set yet!");
         }
+        if (amount <= 0) {
+            throw new InvalidAmountException("Payment amount must be positive.");
+        }
+        
         double balance = getBalance();
         if (amount > balance) {
-            System.out.println("Error: Payment exceeds remaining balance of " + balance);
-        } else {
-            paidAmount += amount;
-            System.out.println("Payment successful! Amount paid: " + amount);
-            if (getBalance() == 0) {
-                System.out.println("Fee paid completely.");
-            }
+            throw new StudentFeeException("Payment of " + amount + " exceeds remaining balance of " + balance);
         }
+
+        paidAmount += amount;
+        System.out.println("Payment successful! Remaining balance: " + getBalance());
     }
 
     public double getBalance() {
-        return totalFee - paidAmount;
+        return (totalFee == -1) ? 0 : (totalFee - paidAmount);
     }
-    
- //student details
 
     public void displayDetails() {
         System.out.println("\n--- Student Fee Details ---");
-        System.out.println("Student ID: " + studentID);
-        System.out.println(" Student Name: " + name);
+        System.out.println("ID: " + studentID + " | Name: " + name);
         System.out.println("Total Fee: " + (totalFee == -1 ? "Not Set" : totalFee));
-        System.out.println("Paid Amount: " + paidAmount);
-        System.out.println("Balance: " + (totalFee == -1 ? "N/A" : getBalance()));
+        System.out.println("Paid: " + paidAmount + " | Balance: " + getBalance());
     }
 }
 
-// Main class 
+//Main Application
 public class MainApp {
     public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
 
-        System.out.println("--- Student Fee Management System ---");
         System.out.print("Enter Student ID: ");
         String id = scanner.nextLine();
         System.out.print("Enter Student Name: ");
@@ -73,24 +81,19 @@ public class MainApp {
         boolean exit = false;
 
         while (!exit) {
-            System.out.println("\n1. Set Total Fee\n2. Pay Fee\n3. View Fee Details\n4. Exit");
-            System.out.print("Select an option: ");
+            System.out.println("\n1. Set Fee \n2. Pay Fee \n3. View Details \n4. Exit");
+            System.out.print("Select: ");
             
             try {
-                String input = scanner.nextLine();
-                int choice = Integer.parseInt(input);
-                
- // Using Classic Switch Syntax for maximum compatibility
+                int choice = Integer.parseInt(scanner.nextLine());
                 switch (choice) {
                     case 1:
-                        System.out.print("Enter total fee amount: ");
-                        double fee = Double.parseDouble(scanner.nextLine());
-                        student.setTotalFee(fee);
+                        System.out.print("Enter fee: ");
+                        student.setTotalFee(Double.parseDouble(scanner.nextLine()));
                         break;
                     case 2:
-                        System.out.print("Enter payment amount: ");
-                        double payment = Double.parseDouble(scanner.nextLine());
-                        student.payFee(payment);
+                        System.out.print("Enter payment: ");
+                        student.payFee(Double.parseDouble(scanner.nextLine()));
                         break;
                     case 3:
                         student.displayDetails();
@@ -99,13 +102,18 @@ public class MainApp {
                         exit = true;
                         break;
                     default:
-                        System.out.println("Invalid choice. Try again.");
+                        System.out.println("Invalid option.");
                 }
-            } catch (Exception e) {    //Exception
-                System.out.println("Error: Please enter a valid number.");
+            } catch (NumberFormatException e) {
+                System.out.println("Error: Please enter numbers only.");
+            } catch (StudentFeeException e) {
+                // Catching custom business logic errors
+                System.out.println("Error: " + e.getMessage());
+            } catch (Exception e) {
+                System.out.println("Unexpected Error: " + e.getMessage());
             }
         }
-        System.out.println("Exiting... Bye Bye!");
+        System.out.println("Exiting...Bye");
         scanner.close();
     }
 }
